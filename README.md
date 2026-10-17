@@ -23,13 +23,48 @@ mistakes are one tap to undo. You can attach a short note to any check-in.
 it is still in progress — the streak only ends when a full period passes without
 a mark.
 
+**Focus timer.** Pick a goal and a length, start it, and get on with your life —
+it runs as a foreground service, so it keeps counting while you read, browse or
+code. Logged minutes feed XP, the heatmap and a "focused today" figure.
+
+**Capacity check.** Tell the app how many minutes a day you can honestly commit
+to. If the ladder schedules more than that, Today points out which days are
+overbooked.
+
+**Weekly rollover.** Opt-in. When Monday arrives, each weekly goal grows a fresh
+set of daily goals for that week, derived from its unchecked steps.
+
 **The cat.** Mochi is drawn in code as a pixel grid (no image assets, ~0 KB).
 He idles and blinks, bounces when you complete things, looks sad when you skip,
 falls asleep at night or if you've been away for days, and gets visibly excited
-past a 7-day streak. His name is configurable.
+past a 7-day streak. His name is configurable, and he takes the accent colour of
+whichever theme is active.
 
-**Stats.** Level and XP derived from real check-ins, a 10-week heatmap, per-horizon
-completion, and your strongest habits ranked by streak.
+**The companion.** Optionally put Mochi on top of your other apps. He walks
+along the bottom of the screen; only his own pixels are touchable, so he never
+gets in the way. Tap him to pet him. Hold him to talk — type or use the mic —
+and he answers in a speech bubble and *out loud*, via Android's text-to-speech.
+That means real meow audio with **zero sound files shipped**. With an AI key
+configured he replies in character (occasional jokes included); without one he
+falls back to canned lines.
+
+How much he can "watch" is entirely your choice, and each option states plainly
+what it can and cannot see:
+
+| Tier | Sees | Cost |
+|---|---|---|
+| Off | nothing | none |
+| Idle | when you last checked in | none |
+| + foreground app | *which* app is open, not what's in it | Usage-access toggle |
+| + on-screen content | window titles and text | Accessibility service, broad access, off by default |
+
+No Android app can watch the screen silently — that is the sandbox, not an
+oversight. The deepest tier exists because it was asked for, and it stays off
+unless you deliberately enable it.
+
+**Stats.** Level and XP derived from real check-ins, a consistency heatmap that
+adapts to your screen width, per-horizon completion, and your strongest habits
+ranked by streak.
 
 **Review.** A weekly/monthly look-back: completion rate for the period, a list of
 what slipped, a mood picker, a notes field, and a one-tap "carry into next week"
@@ -41,6 +76,9 @@ permission needed). Per goal, per weekday. Rescheduled after reboot.
 **Home-screen widget.** Today's goals plus Mochi. Tap a row to tick it off without
 opening the app.
 
+**Themes.** Six — Ember, Crimson, Ocean, Forest, Violet, Slate — each with its own
+dark and light scheme and its own set of ladder colours.
+
 **AI plan builder.** Describe what you want to learn, how many hours a day you can
 commit, and how long you want to take, and it generates a month-by-month,
 week-by-week, day-by-day plan with milestones. Works with *any* OpenAI-compatible
@@ -49,7 +87,8 @@ is configured — or the call fails — it falls back to a built-in offline plan
 that produces the same structure from templates.
 
 **Backup.** Export/import everything as JSON. Copy to clipboard, paste back later,
-move to a new phone.
+move to a new phone. An optional weekly snapshot writes a dated copy into app
+storage; it is **off by default**.
 
 ---
 
@@ -76,6 +115,16 @@ Notable choices:
   picked over OkHttp and Glance to keep the dependency surface tiny and the build
   reliable.
 
+### Performance
+
+Progress used to be recomputed by scanning every check-in on every
+recomposition, which made the app crawl once a plan had been materialised. All
+of it now lives in `data/Snapshot.kt`: an indexed, memoised view built once per
+data change via `remember(data) { Snapshot(data) }`. `Progress` is reduced to pure
+statics so the slow path cannot creep back in. Reminder and widget calls are
+binder work, so they are kept off the main thread and the widget redraw is
+coalesced.
+
 ### Architecture
 
 ```
@@ -93,6 +142,13 @@ com.mochi.ascend
 │   └── Planner.kt           Prompt, offline planner, plan → goals
 ├── notify/Reminders.kt       AlarmManager scheduling + receivers
 ├── art/CatArt.kt             The sprite, as a pixel grid (shared)
+├── focus/FocusService.kt     Foreground service for the focus timer
+├── companion/
+│   ├── CompanionService.kt   Walkable overlay window + talk bubble
+│   ├── CatView.kt            The cat, drawn per frame (plain View)
+│   ├── Talker.kt             TTS voice — no audio files shipped
+│   ├── Meow.kt               Canned lines and AI cat-speak
+│   └── Watchers.kt           Usage-stats and accessibility tiers
 ├── ui/                       Theme, Glyph icons, Cat, screens
 └── widget/                   Home-screen widget + bitmap renderer
 ```
