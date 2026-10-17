@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Ascend</string>
+    <!-- Apostrophe must be escaped in Android XML resources. -->
+    <string name="widget_desc">Today\'s goals, one tap to tick off</string>
+</resources>
