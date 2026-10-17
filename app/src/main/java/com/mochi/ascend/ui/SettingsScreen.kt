@@ -29,6 +29,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import com.mochi.ascend.ai.AiClient
 import com.mochi.ascend.data.Actions
 import com.mochi.ascend.data.AppData
+import com.mochi.ascend.data.AutoBackup
+import com.mochi.ascend.data.Dates
+import com.mochi.ascend.data.Snapshot
 import com.mochi.ascend.data.Store
 import com.mochi.ascend.notify.Reminders
 import kotlinx.coroutines.launch
@@ -60,6 +65,8 @@ fun SettingsScreen(data: AppData) {
     var catName by remember { mutableStateOf(settings.catName) }
     var backup by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }
+    var backupStatus by remember { mutableStateOf("") }
+    val snap = remember(data) { Snapshot(data) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -138,6 +145,86 @@ fun SettingsScreen(data: AppData) {
                 )
             }
         }
+
+        item { SectionHeader("Planning") }
+        item {
+            Panel {
+                Text(
+                    "How many minutes a day can you actually commit to?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "${settings.capacityMinutes} min a day",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Slider(
+                    value = settings.capacityMinutes.toFloat(),
+                    onValueChange = { v ->
+                        Actions.saveSettings(settings.copy(capacityMinutes = v.toInt()))
+                    },
+                    valueRange = 30f..480f,
+                    steps = 14,
+                )
+                Spacer(Modifier.height(6.dp))
+                ToggleRow(
+                    "Roll the plan into each new week",
+                    "Generates next Monday's daily goals from your weekly steps.",
+                    settings.autoRoll,
+                ) { on -> Actions.saveSettings(settings.copy(autoRoll = on)) }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Today's load: ${Dates.prettyMinutes(snap.overcommitted().firstOrNull()?.minutes ?: 0)} peak",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        item { SectionHeader("Backup") }
+        item {
+            Panel {
+                ToggleRow(
+                    "Automatic weekly snapshot",
+                    "Writes a dated JSON copy into app storage every 7 days. Off by default.",
+                    settings.autoBackup,
+                ) { on ->
+                    Actions.saveSettings(settings.copy(autoBackup = on))
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Pill("Back up now", {
+                        backupStatus = if (AutoBackup.run(context)) {
+                            "Snapshot saved."
+                        } else {
+                            "Nothing to save, or backups are off."
+                        }
+                    })
+                }
+                val files = AutoBackup.list(context)
+                if (files.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Saved: " + files.joinToString(", ") { it.name.removeSuffix(".json") },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (backupStatus.isNotBlank()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(backupStatus, style = MaterialTheme.typography.bodySmall, color = Green)
+                }
+            }
+        }
+
+        item { SectionHeader("Companion") }
+        item { CompanionPanel(settings) }
 
         item { SectionHeader("Reminders") }
         item {

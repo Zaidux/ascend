@@ -82,6 +82,49 @@ fun TodayScreen(
         item { SectionHeader("The ladder") }
         item { LadderBars(snap) }
 
+        val over = snap.overcommitted()
+        if (over.isNotEmpty()) {
+            item {
+                Panel {
+                    Text(
+                        "Overcommitted",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Red,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        over.joinToString(", ") { "${Dates.weekdayShort(it.date)} ${Dates.prettyMinutes(it.minutes)}" } +
+                            " — you said ${Dates.prettyMinutes(data.settings.capacityMinutes)} a day.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        if (snap.focusToday > 0) {
+            item { SectionHeader("Today") }
+            item {
+                Panel {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        GlyphIcon(Glyph.TARGET, size = 16.dp, tint = catAccent())
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "${Dates.prettyMinutes(snap.focusToday)} focused today",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        }
+
+        item { SectionHeader("Focus") }
+        item { FocusTimerPanel(goals = snap.dailyGoals, onDone = {}) }
+
         if (daily.isNotEmpty()) {
             item { SectionHeader("Today", "$doneToday/${daily.size} done") }
             items(daily, key = { it.id }) { goal ->

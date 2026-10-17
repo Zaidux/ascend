@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +38,8 @@ fun LadderScreen(
     onAddGoal: (Horizon) -> Unit,
 ) {
     val snap = remember(data) { Snapshot(data) }
+    var query by remember { mutableStateOf("") }
+
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
@@ -43,17 +49,24 @@ fun LadderScreen(
                 "The ladder",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 4.dp),
             )
-            Text(
-                "Yearly to daily. Tap anything to open it.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Search goals") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
         Horizon.entries.reversed().forEach { horizon ->
-            val rows = snap.flatten(horizon)
+            val rows = snap.flatten(horizon).filter { (goal, _) ->
+                query.isBlank() ||
+                    goal.title.contains(query, ignoreCase = true) ||
+                    goal.detail.contains(query, ignoreCase = true)
+            }
+            if (query.isNotBlank() && rows.isEmpty()) return@forEach
             item(key = "hdr-${horizon.name}") {
                 Row(
                     Modifier

@@ -184,8 +184,17 @@ class Snapshot(val data: AppData) {
             }
         } + data.goals.sumOf { g ->
             g.milestones.count { it.done } * 20 + g.subtasks.count { it.done } * 2
-        }
+        } + FocusLog.total(data)
     }
+
+    /** Focused minutes logged today, across all goals. */
+    val focusToday: Int by lazy { FocusLog.minutesOn(data, LocalDate.now()) }
+
+    fun focusOn(date: LocalDate): Int = FocusLog.minutesOn(data, date)
+
+    /** Overcommitted days for the current week, for the capacity warning. */
+    fun overcommitted(): List<Capacity.Day> =
+        Capacity.week(data).filter { it.over }
 
     val level: Int get() = Progress.level(xp)
     val levelProgress: Float get() = Progress.levelProgress(xp)

@@ -96,6 +96,34 @@ data class AiConfig(
     val model: String = "",
 )
 
+/** How much the companion is allowed to observe. Chosen by the user. */
+@Serializable
+enum class WatchLevel(val label: String, val blurb: String) {
+    OFF("Off", "He just sits there. Cute, but blind."),
+    IDLE("Idle only", "He knows when you last checked in. No extra permission."),
+    APP("Idle + foreground app", "He can see which app is open, not what's in it."),
+    SCREEN("On-screen content", "He can read window titles. Grants broad access."),
+}
+
+@Serializable
+data class CompanionSettings(
+    val enabled: Boolean = false,
+    val watch: WatchLevel = WatchLevel.OFF,
+    val speak: Boolean = true,
+    val voiceInput: Boolean = true,
+    val jokes: Boolean = true,
+    val petGivesXp: Boolean = true,
+)
+
+/** A logged stretch of focused work against one goal. */
+@Serializable
+data class FocusSession(
+    val id: String,
+    val goalId: String,
+    val startedAt: Long,
+    val minutes: Int,
+)
+
 @Serializable
 data class Settings(
     val ai: AiConfig = AiConfig(),
@@ -105,6 +133,14 @@ data class Settings(
     val digestAt: String = "08:00",
     val catName: String = "Mochi",
     val showCat: Boolean = true,
+    /** How many minutes a day the user says they can actually commit to. */
+    val capacityMinutes: Int = 120,
+    /** Weekly plan rollover: generate the next week when Monday arrives. */
+    val autoRoll: Boolean = false,
+    /** Weekly JSON snapshot. Opt-in, off by default. */
+    val autoBackup: Boolean = false,
+    val lastBackupAt: Long = 0L,
+    val companion: CompanionSettings = CompanionSettings(),
 )
 
 @Serializable
@@ -112,8 +148,10 @@ data class AppData(
     val goals: List<Goal> = emptyList(),
     val checkIns: List<CheckIn> = emptyList(),
     val reflections: List<Reflection> = emptyList(),
+    val focusSessions: List<FocusSession> = emptyList(),
     val settings: Settings = Settings(),
     val lastOpen: Long = 0L,
+    val lastSeenWeek: String = "",
 )
 
 /** Goal tree helpers shared by the UI. */

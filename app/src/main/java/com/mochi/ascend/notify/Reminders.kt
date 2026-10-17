@@ -122,6 +122,14 @@ object Reminders {
         } catch (_: SecurityException) {
             // Permission revoked between check and post.
         }
+
+        // If the companion is on screen, let him say it out loud too.
+        runCatching {
+            com.mochi.ascend.companion.CompanionService.say(
+                ctx,
+                "${Store.data.value.settings.catName.ifBlank { "Mochi" }}: ${goal.title}",
+            )
+        }
     }
 }
 
